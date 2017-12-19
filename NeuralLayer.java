@@ -13,6 +13,10 @@ public class NeuralLayer{
     public int outputCount;
 
     public double[][] weights;
+    public double[][] deltaWeights;
+    public double[] output;
+    public double[] err;
+    public double[] input;
 
     public NeuralLayer(int inputCount, int outputCount){
         this.inputCount=inputCount;
@@ -22,6 +26,15 @@ public class NeuralLayer{
         for(int i=0;i<weights.length;i++){
             this.weights[i] = new double[outputCount];
         }
+
+        this.deltaWeights = new double[inputCount][];
+        for(int i=0;i<deltaWeights.length;i++){
+            this.deltaWeights[i] = new double[outputCount];
+        }
+
+        this.input = new double[inputCount];
+        this.output = new double[outputCount];
+        this.err = new double[pCount];
     }
 
     public void setWeights(double[][] newWeights){
@@ -37,6 +50,7 @@ public class NeuralLayer{
 
         double[] outputs = new double[this.outputCount];
 
+        this.input = inputs;
         for(int i=0;i<outputCount;i++){
             for(int j=0;j<inputCount;j++){
                 outputs[i]+=inputs[j]*weights[j][i];
@@ -47,6 +61,7 @@ public class NeuralLayer{
             outputs[i] = MathUtils.sigmoidFunction(outputs[i]);
         }
 
+        this.output = outputs;
         return outputs;
     }
 

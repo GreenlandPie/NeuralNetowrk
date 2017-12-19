@@ -4,13 +4,11 @@ public class NeuralManager{
 
     public static void main(String args[]){
 
-        NeuralNetwork net = new NeuralNetwork(new int[]{3, 4, 5, 3});
+        NeuralNetwork net = new NeuralNetwork(new int[]{2, 2, 1}, 0.01, 0.1, 1000);
         net.generateRandomWeights( -1.0, 1.0);
 
-        double[] outputs = net.feedforward(new double[]{0.5, 0.35, 1.0});
+        net.trainNetwork(new double[][]{{0, 0}, {0, 1}, {1, 0}, {1, 1}}, new double[][]{{0}, {1}, {1}, {0}});
 
-        for(int i=0;i<outputs.length;i++){
-            System.out.println(outputs[i]);
-        }
+        System.out.println("Net trained");
     }
 }
