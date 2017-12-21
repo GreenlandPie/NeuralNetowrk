@@ -4,7 +4,7 @@ import java.math.*;
 public class NeuralNetwork{
 
     public int[] layerCount;
-    public NeuralLayer[] layers;
+    public NeuralLayer[] layer;
 
     public double learningRate, minError, overallError;
     public int maxIterations;
@@ -15,9 +15,11 @@ public class NeuralNetwork{
 
         this.layerCount=layerCount;
 
-        this.layers = new NeuralLayer[layerCount.length-1];
-        for(int i=0;i<layers.length;i++){
-            layers[i] = new NeuralLayer(layerCount[i], layerCount[i+1]);
+        this.layer = new NeuralLayer[layerCount.length];
+
+        layer[0] = new NeuralLayer(layerCount[0], layerCount[0]);
+        for(int i=1;i<layer.length;i++){
+            layer[i] = new NeuralLayer(layerCount[i], layerCount[i-1]);
         }
 
         this.learningRate = learningRate;
@@ -25,44 +27,51 @@ public class NeuralNetwork{
         this.maxIterations = maxIterations;
     }
 
-    public double[] feedforward(double[] inputs){
+    public void feedforward(){
 
-        double[] outputs = inputs;
-        for(int i=0;i<layers.length;i++){
-            outputs = layers[i].feedforward(outputs);
+        for(int i=0;i<layer[0].node.length;i++){
+            layer[0].node[i].output = layer[0].input[i];
         }
 
-        return outputs;
+        layer[1].input = layer[0].input;
+        for(int i=1;i<layer.length;i++){
+            layer[i].feedforward();
+
+            if(i != layer.length-1){
+                layer[i+1].input = layer[i].out();
+            }
+        }
     }
 
     public void generateRandomWeights(double min, double max){
 
-        for(int i=0;i<layers.length;i++){
-            layers[i].generateRandomWeights(min, max);
+        for(int i=1;i<layer.length-1;i++){
+            layer[i].generateRandomWeights(min, max);
         }
     }
 
     public void backpropagate(){
 
-        int outputCount = layerCount[layerCount.length-1], outputIndex = layerCount.length-1;
+        int lastLayerNodeNumber = layer[layer.length-1].node.length;
+        int lastLayerIndex = layer.length-1;
 
-        for(int i=0;i<outputCount;i++){
-            layers[outputIndex].err[i] = (expectedOutput[i]-layers[outputIndex].output[i])*
-            layers[outputIndex].output[i]*
-            (1-layers[outputIndex].output[i]);
+        for(int i=0;i<lastLayerIndex;i++){
+            layer[lastLayerNodeNumber].node[i].err =(expectedOutput[i]-layer[lastLayerIndex].node[i].output)*
+                                        layer[lastLayerIndex].node[i].output*
+                                        (1-layer[lastLayerIndex].node[i].output);
         }
 
         double sum=0;
         for(int i=layerCount.length-2;i>0;i--){
+            System.out.println("\t"+layerCount[i]+" "+layerCount[i+1]);
             for(int j=0;j<layerCount[i];j++){
                 sum=0;
 
                 for(int k=0;k<layerCount[i+1];k++){
-                    sum += layers[i+1].weights[j][k]*layers[i+1].err[k];
+                    sum += layer[i+1].node[k].weight[j]*layer[i+1].node[k].err;
                 }
 
-                layers[i].err[j] = layers[i].output[j]*(1-layers[i].output[j])*sum;
-
+                layer[i].node[j].err = layer[i].node[j].output*(1-layer[i].node[j].output)*sum;
             }
         }
     }
@@ -70,12 +79,13 @@ public class NeuralNetwork{
     public void updateWeights(){
 
         for(int i=layerCount.length-1;i>0;i--){
-            for(int j=0;j<layerCount[i-1];j++){
-                for(int k=0;k<layerCount[i];k++){
-                    layers[i-1].deltaWeights[j][k] = this.learningRate * layers[i].err[k] *
-                     layers[i-1].output[j] + layers[i-1].deltaWeights[j][k];
+            for(int j=0;j<layer[i].node.length;j++){
+                for(int k=0;k<layer[i].input.length;k++){
+                    System.out.println("\t\t\t\t\t"+i+","+k+","+j+": ");
+                    layer[i].node[j].deltaWeight[k] = this.learningRate * layer[i].node[j].err *
+                     layer[i-1].node[k].output + layer[i].node[j].deltaWeight[k];
 
-                     layers[i-1].weights[j][k] += layers[i-1].deltaWeights[j][k];
+                     layer[i].node[j].weight[k] += layer[i].node[j].weight[k];
                 }
             }
         }
@@ -85,7 +95,7 @@ public class NeuralNetwork{
 
         overallError = 0;
         for(int i=0;i<layerCount[layerCount.length-1];i++){
-            overallError+= 0.5*(Math.pow(expectedOutput[i]-layers[layerCount.length-1].output[i], 2));
+            overallError+= 0.5*(Math.pow(expectedOutput[i]-layer[layerCount.length-1].node[i].output, 2));
         }
     }
 
@@ -96,10 +106,13 @@ public class NeuralNetwork{
         do{
 
             for(int i=0;i<sampleOutputs.length;i++){
+                for(int j=0;j<layer[0].node.length;j++){
+                    layer[0].input = sampleInput[i];
+                }
 
                 expectedOutput = sampleOutputs[i];
 
-                feedforward(sampleInput[i]);
+                feedforward();
                 backpropagate();
                 updateWeights();
             }
